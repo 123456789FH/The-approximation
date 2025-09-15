@@ -1,0 +1,679 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>لعبة التقريب وتقدير نواتج الجمع</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;800&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg1:#fef6e4; --bg2:#fde4f2; --bg3:#e8f7ff;
+    --brand:#ff7aa2; --brand2:#6dd3ff; --accent:#ffc857; --success:#23d18b; --info:#6c8cff; --danger:#ff6b6b;
+    --logo-h: 90px; /* ⬅️ حجم الشعار (يمكن تعديله) */
+  }
+  body{ font-family:'Cairo',system-ui,-apple-system,Segoe UI,Roboto; background:
+    radial-gradient(1200px 600px at 10% 0%, var(--bg2), transparent 60%),
+    radial-gradient(1000px 600px at 90% 10%, var(--bg3), transparent 60%),
+    radial-gradient(800px 500px at 50% 100%, var(--bg1), transparent 60%),
+    linear-gradient(180deg, #fff, #fff 40%, #f9fbff 100%);
+    min-height:100dvh; }
+  .card{ backdrop-filter:saturate(140%) blur(6px);}
+  .bubble{
+    position:absolute; border-radius:9999px; opacity:.3; filter:blur(4px);
+    animation: float 12s ease-in-out infinite;
+  }
+  .bubble.b1{ background:var(--brand2); width:120px; height:120px; top:10%; left:8%; animation-delay:0s}
+  .bubble.b2{ background:var(--accent); width:90px; height:90px; top:70%; right:6%; animation-delay:2s}
+  .bubble.b3{ background:var(--brand); width:150px; height:150px; bottom:6%; left:40%; animation-delay:4s}
+  @keyframes float{ 0%,100%{ transform:translateY(0)} 50%{ transform:translateY(-14px)}}
+
+  .pill{ box-shadow:0 6px 20px rgba(0,0,0,.08);}
+  .btn-joy{ transition:transform .08s ease, box-shadow .2s ease, background .2s ease;}
+  .btn-joy:active{ transform:translateY(1px); }
+  .star {
+    width: 18px; height: 18px; display:inline-block; margin:0 2px;
+    background: conic-gradient(from 0deg, #ffd86b, #ffeaa7, #ffd86b);
+    -webkit-mask: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 576 512"><path fill="black" d="M316.9 18C311.6 7 300.4 0 288.1 0s-23.4 7-28.8 18L195 150.3 51.4 171.5c-12 1.8-22 10.2-25.7 21.7s-.7 24.2 7.9 32.7L137.8 329 113.2 474.7c-2 12 3 24.1 12.9 31.2s23 8 33.7 2.3l128.3-67.5 128.3 67.5c10.7 5.6 23.8 4.9 33.7-2.3s14.9-19.2 12.9-31.2L438.4 329l103.9-103.1c8.6-8.5 11.6-21.2 7.9-32.7s-13.7-19.9-25.7-21.7L381.3 150.3 316.9 18z"/></svg>') center/contain no-repeat;
+            mask: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 576 512"><path fill="black" d="M316.9 18C311.6 7 300.4 0 288.1 0s-23.4 7-28.8 18L195 150.3 51.4 171.5c-12 1.8-22 10.2-25.7 21.7s-.7 24.2 7.9 32.7L137.8 329 113.2 474.7c-2 12 3 24.1 12.9 31.2s23 8 33.7 2.3l128.3-67.5 128.3 67.5c10.7 5.6 23.8 4.9 33.7-2.3s14.9-19.2 12.9-31.2L438.4 329l103.9-103.1c8.6-8.5 11.6-21.2 7.9-32.7s-13.7-19.9-25.7-21.7L381.3 150.3 316.9 18z"/></svg>') center/contain no-repeat;
+  }
+  .tooltip{ position:relative }
+  .tooltip:hover .tip { opacity:1; transform:translateY(0); pointer-events:auto; }
+  .tip{
+    position:absolute; bottom:120%; right:0; opacity:0; transform:translateY(6px);
+    background:#0f172a; color:#fff; padding:.6rem .8rem; border-radius:.7rem; width:260px;
+    box-shadow:0 12px 30px rgba(15,23,42,.25); transition:all .2s ease;
+  }
+  .tip:after{ content:""; position:absolute; top:100%; right:16px; border:8px solid transparent; border-top-color:#0f172a}
+  .shake{ animation:shake .4s linear }
+  @keyframes shake{ 0%,100%{ transform:translateX(0)} 25%{ transform:translateX(-4px)} 75%{ transform:translateX(4px)} }
+
+  /* شارة الشعار أعلى الصفحة - مكبرة */
+  .brand-badge{ position:absolute; top:1rem; right:1rem; }
+  .brand-badge img{ height:var(--logo-h); width:auto; filter: drop-shadow(0 6px 10px rgba(0,0,0,.15)); }
+
+  /* أزرار الاختيارات */
+  .choice{ border-width:1px; border-color:rgb(226 232 240); background:white; }
+  .choice[aria-selected="true"]{ outline: 3px solid #22c55e; outline-offset: 2px; }
+</style>
+</head>
+<body class="text-slate-800">
+  <div class="bubble b1"></div>
+  <div class="bubble b2"></div>
+  <div class="bubble b3"></div>
+
+  <!-- شعار الملتقى (يمكنك تغيير رابط الصورة بسهولة) -->
+  <a class="brand-badge hidden md:block" href="https://t.me/ITG_KSA" target="_blank" rel="noopener" title="قناة الملتقى">
+    <img src="https://d.top4top.io/p_35209x7gh1.png" alt="شعار الملتقى">
+  </a>
+
+  <main class="relative max-w-5xl mx-auto px-4 py-8">
+    <header class="flex flex-col items-center text-center gap-3">
+      <h1 class="text-3xl md:text-4xl font-extrabold bg-clip-text text-transparent"
+          style="background-image:linear-gradient(90deg,var(--brand) 0%, var(--accent) 50%, var(--brand2) 100%);">
+        لعبة التقريب وتقدير نواتج الجمع
+      </h1>
+      <p class="text-slate-600 max-w-3xl">
+        تعلم كيف نقرّب الأعداد إلى العشرات أو المئات، ونستخدم الأعداد المتناغمة لتقدير حاصل الجمع بسرعة وذكاء.
+      </p>
+      <div class="flex gap-2 flex-wrap justify-center mt-1">
+        <span class="pill inline-flex items-center gap-2 bg-white/70 border border-white text-slate-700 px-3 py-1.5 rounded-full">
+          🎯 هدف الدرس
+          <span class="text-xs bg-slate-100 px-2 py-0.5 rounded-full">التقريب + التناغم</span>
+        </span>
+        <span class="pill inline-flex items-center gap-2 bg-white/70 border border-white text-slate-700 px-3 py-1.5 rounded-full">
+          ⏱️ وقت اللعب
+          <span class="text-xs bg-slate-100 px-2 py-0.5 rounded-full">5–7 دقائق</span>
+        </span>
+      </div>
+    </header>
+
+    <!-- لوحة الشرح -->
+    <section class="mt-6 grid md:grid-cols-2 gap-4">
+      <div class="card bg-white/80 border border-white rounded-2xl p-5">
+        <h2 class="font-bold text-lg flex items-center gap-2">ما معنى التقريب؟ 📏</h2>
+        <p class="text-slate-700 mt-2">
+          التقريب يعني أخذ عدد وجعله أسهل للحسابات، مع الحفاظ على قيمته تقريبية. ننظر إلى الرقم التالي:
+        </p>
+        <ul class="list-disc pr-5 mt-2 text-slate-700">
+          <li>نقرّب إلى أقرب عشرة: ننظر إلى خانة الآحاد.</li>
+          <li>نقرّب إلى أقرب مئة: ننظر إلى خانة العشرات.</li>
+          <li>٥ أو أكثر؟ نزيد الخانة التي قبلها. أقل من ٥؟ نبقيها كما هي.</li>
+        </ul>
+        <div class="mt-3 text-sm bg-slate-50 border border-slate-200 rounded-xl p-3">
+          مثال: 47 ≈ 50 (لأن 7 خمسة أو أكثر) – 42 ≈ 40 (لأن 2 أقل من خمسة)
+        </div>
+      </div>
+
+      <div class="card bg-white/80 border border-white rounded-2xl p-5">
+        <h2 class="font-bold text-lg flex items-center gap-2">ما هي الأعداد المتناغمة؟ 🎵</h2>
+        <p class="text-slate-700 mt-2">
+          الأعداد المتناغمة هي أعداد يسهل جمعها سريعًا لأنها تكون قريبة من مضاعفات 10 أو 100 أو تكمل بعضها البعض.
+        </p>
+        <ul class="list-disc pr-5 mt-2 text-slate-700">
+          <li>35 + 65 متناغمان لأن 35 + 65 = 100</li>
+          <li>28 قريب من 30 و72 قريب من 70 ⇒ 30 + 70 = 100 تقدير سريع</li>
+        </ul>
+        <div class="mt-3 text-sm bg-slate-50 border border-slate-200 rounded-xl p-3">
+          الفكرة: قرّب الأعداد إلى قيم سهلة ثم اجمع لتحصل على تقدير ذكي وسريع.
+        </div>
+      </div>
+    </section>
+
+    <!-- شريط التحكم -->
+    <section class="mt-6 card bg-white/80 border border-white rounded-2xl p-5">
+      <div class="flex flex-col md:flex-row items-stretch md:items-center justify-between gap-3">
+        <div class="flex items-center gap-2">
+          <span class="text-slate-700 font-semibold">وضع اللعب:</span>
+          <div id="modeChips" class="flex gap-2 flex-wrap">
+            <button data-mode="round10" class="mode btn-joy px-3 py-1.5 rounded-full bg-amber-100 text-amber-800 border border-amber-200">تقريب للعشرات</button>
+            <button data-mode="round100" class="mode btn-joy px-3 py-1.5 rounded-full bg-sky-100 text-sky-800 border border-sky-200">تقريب للمئات</button>
+            <button data-mode="harmonic" class="mode btn-joy px-3 py-1.5 rounded-full bg-rose-100 text-rose-800 border border-rose-200">أعداد متناغمة</button>
+          </div>
+        </div>
+        <div class="flex items-center gap-2">
+          <span class="text-slate-700 font-semibold">المستوى:</span>
+          <select id="level" class="px-3 py-2 rounded-xl bg-white border border-slate-200 text-slate-700 focus:outline-none">
+            <option value="easy">سهل</option>
+            <option value="medium" selected>متوسط</option>
+            <option value="hard">متقدم</option>
+          </select>
+          <button id="newQ" class="btn-joy px-4 py-2 rounded-xl bg-gradient-to-l from-[var(--brand)] to-[var(--accent)] text-white font-semibold shadow-md hover:brightness-110">سؤال جديد 🔄</button>
+        </div>
+      </div>
+    </section>
+
+    <!-- مساحة السؤال واللعب -->
+    <section class="mt-6 grid lg:grid-cols-3 gap-4">
+      <!-- السؤال -->
+      <div class="lg:col-span-2 card bg-white/90 border border-white rounded-2xl p-5">
+        <div class="flex items-start justify-between gap-2">
+          <div>
+            <h3 class="text-xl font-bold text-slate-800 flex items-center gap-2">التحدي الحالي ✨</h3>
+            <p class="text-slate-600 text-sm mt-1" id="hintText">اختر الوضع واضغط “سؤال جديد”.</p>
+          </div>
+          <div class="flex items-center gap-2">
+            <div class="tooltip">
+              <button id="helpBtn" class="btn-joy px-3 py-2 rounded-xl bg-slate-800 text-white text-sm">مساعدة ❓</button>
+              <div class="tip" id="helpTip">
+                جرّب تقريب كل عدد أولًا، ثم اجمع النتيجة. إذا كان الفرق صغيرًا، فالتقدير ممتاز!
+              </div>
+            </div>
+            <button id="ttsBtn" class="btn-joy px-3 py-2 rounded-xl bg-emerald-600 text-white text-sm">🔊 استمع</button>
+          </div>
+        </div>
+
+        <div class="mt-5 bg-gradient-to-br from-white to-slate-50 border border-slate-200 rounded-2xl p-5">
+          <div id="questionBox" class="text-3xl md:text-4xl font-extrabold text-slate-900 tracking-tight text-center py-4">
+            — — —
+          </div>
+
+          <!-- أدوات التقريب -->
+          <div class="grid md:grid-cols-3 gap-3 mt-3">
+            <div class="p-3 rounded-xl bg-amber-50 border border-amber-100">
+              <p class="text-sm font-semibold text-amber-800">تقريب العدد الأول</p>
+              <div class="flex items-center gap-2 mt-2">
+                <button id="decA" class="btn-joy px-3 py-2 rounded-xl bg-white border border-slate-200">−</button>
+                <input id="roundA" class="w-full text-center px-3 py-2 rounded-xl bg-white border border-slate-200" value="" placeholder="...">
+                <button id="incA" class="btn-joy px-3 py-2 rounded-xl bg-white border border-slate-200">+</button>
+              </div>
+            </div>
+            <div class="p-3 rounded-xl bg-sky-50 border border-sky-100">
+              <p class="text-sm font-semibold text-sky-800">تقريب العدد الثاني</p>
+              <div class="flex items-center gap-2 mt-2">
+                <button id="decB" class="btn-joy px-3 py-2 rounded-xl bg-white border border-slate-200">−</button>
+                <input id="roundB" class="w-full text-center px-3 py-2 rounded-xl bg-white border border-slate-200" value="" placeholder="...">
+                <button id="incB" class="btn-joy px-3 py-2 rounded-xl bg-white border border-slate-200">+</button>
+              </div>
+            </div>
+            <div class="p-3 rounded-xl bg-rose-50 border border-rose-100">
+              <p class="text-sm font-semibold text-rose-800">تقدير حاصل الجمع (اختر الإجابة)</p>
+              <!-- حقل مخفي لتمرير القيمة للدالة الحالية -->
+              <input id="sumGuess" type="hidden">
+              <div id="mcq" class="grid grid-cols-2 gap-2 mt-2">
+                <!-- أزرار الاختيارات تُملأ تلقائيًا -->
+              </div>
+            </div>
+          </div>
+
+          <!-- التغذية الراجعة -->
+          <div id="feedback" class="mt-4 hidden">
+            <div id="fbBox" class="rounded-2xl p-4"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- لوحة النقاط والتقدم -->
+      <aside class="card bg-white/90 border border-white rounded-2xl p-5">
+        <div class="flex items-center justify-between">
+          <h3 class="font-bold text-lg">لوحة التقدم 🏆</h3>
+          <button id="resetBtn" class="btn-joy text-slate-700 text-sm bg-white border border-slate-200 px-3 py-1.5 rounded-lg">إعادة التقدم</button>
+        </div>
+        <div class="mt-3">
+          <div class="flex items-center gap-2">
+            <span class="text-slate-600">النجوم:</span>
+            <div id="stars" class="flex"></div>
+          </div>
+          <div class="mt-3 text-slate-700">
+            <div class="flex items-center justify-between">
+              <span>سلسلة الإجابات الصحيحة:</span>
+              <span id="streak" class="font-bold text-emerald-600">0</span>
+            </div>
+            <div class="flex items-center justify-between mt-1">
+              <span>أفضل سلسلة:</span>
+              <span id="best" class="font-bold text-indigo-600">0</span>
+            </div>
+          </div>
+          <div class="mt-4 bg-slate-50 border border-slate-200 rounded-xl p-3 text-sm text-slate-700">
+            اجمع 5 نجوم للفوز بالجولة! كل إجابة ممتازة تعطيك نجمة ✨
+          </div>
+          <button id="celebrateBtn" class="mt-3 w-full btn-joy px-4 py-2 rounded-xl bg-gradient-to-l from-[var(--brand2)] to-[var(--accent)] text-white font-semibold">🎉 احتفال صغير</button>
+        </div>
+      </aside>
+    </section>
+
+    <!-- تحديات إضافية -->
+    <section class="mt-6 card bg-white/80 border border-white rounded-2xl p-5">
+      <h3 class="font-bold text-lg mb-2">تحدٍ سريع: اختر الأعداد المتناغمة 🎵</h3>
+      <p class="text-slate-600 text-sm">اختر الزوج الأكثر تناغمًا (الأقرب لمجموع 100 أو 1000) لتحصل على نجمة إضافية.</p>
+      <div id="harmonicChoices" class="mt-3 grid sm:grid-cols-2 lg:grid-cols-4 gap-3">
+        <!-- خيارات تُملأ تلقائياً -->
+      </div>
+    </section>
+
+    <!-- نافذة فوز -->
+    <div id="winModal" class="fixed inset-0 hidden items-center justify-center p-4">
+      <div class="absolute inset-0 bg-black/30"></div>
+      <div class="relative z-10 bg-white rounded-2xl p-6 max-w-md w-full text-center">
+        <h3 class="text-2xl font-extrabold">رائع! أنت نجم التقريب 🌟</h3>
+        <p class="text-slate-700 mt-2">جمعت 5 نجوم. استمر في اللعب أو ابدأ جولة جديدة!</p>
+        <div class="mt-4 flex items-center justify-center gap-3">
+          <button id="closeWin" class="btn-joy px-4 py-2 rounded-xl bg-slate-100 text-slate-800 border border-slate-200">متابعة</button>
+          <button id="newRound" class="btn-joy px-4 py-2 rounded-xl bg-emerald-500 hover:bg-emerald-600 text-white font-semibold">جولة جديدة</button>
+        </div>
+      </div>
+    </div>
+
+    <footer class="text-center text-slate-600 text-sm mt-8 space-y-1">
+      <div>برمجة: أ/ فاطمة هزازي · ملتقى معلمي ومعلمات الرياضيات · ملتقى التعليم التفاعلي</div>
+      <div>قناة الملتقى: <a class="text-sky-700 hover:underline" href="https://t.me/ITG_KSA" target="_blank" rel="noopener">t.me/ITG_KSA</a></div>
+    </footer>
+  </main>
+
+<script>
+/* حالة اللعبة */
+const state = {
+  mode: 'round10', // round10 | round100 | harmonic
+  level: 'medium',
+  a: null, b: null, // الأعداد الأصلية
+  targetRound: 10,  // أساس التقريب
+  stars: 0, streak: 0, best: 0
+};
+
+/* أدوات مساعدة */
+const $ = (sel)=>document.querySelector(sel);
+const $$ = (sel)=>Array.from(document.querySelectorAll(sel));
+const nf = new Intl.NumberFormat('ar-EG');
+
+function rand(min,max){ return Math.floor(Math.random()*(max-min+1))+min; }
+function nearestBase(n, base){
+  const down = Math.floor(n/base)*base;
+  const up = Math.ceil(n/base)*base;
+  // قاعدة 5 أو أكثر إلى الأعلى
+  const mid = down + base/2;
+  return (n>=mid)? up: down;
+}
+function formatPair(a,b){ return `${a.toLocaleString('ar-EG')} + ${b.toLocaleString('ar-EG')}`; }
+function clampInputToStep(val, base){
+  val = parseInt(val||0,10);
+  if(isNaN(val)) return '';
+  return Math.round(val/base)*base;
+}
+
+/* إنشاء سؤال حسب الوضع والمستوى */
+function levelRange(level){
+  switch(level){
+    case 'easy': return [10, 99];
+    case 'medium': return [50, 499];
+    case 'hard': return [200, 1200];
+  }
+}
+function genPairNearHarmony(to=100){
+  const x = rand(10, to-10);
+  const y = to - x + rand(-5,5); // قريب من المكمل
+  return [Math.max(1,x), Math.max(1,y)];
+}
+function newQuestion(){
+  const [min,max]=levelRange(state.level);
+  if(state.mode==='harmonic'){
+    // أعداد عادية لكن يسهل جعلها متناغمة بعد التقريب
+    let [a,b]=genPairNearHarmony(state.level==='hard'?1000:100);
+    // انقل للأطياف المطلوبة للمستوى
+    a = clampToRange(a+rand(-20,20), min, max);
+    b = clampToRange(b+rand(-20,20), min, max);
+    state.a=a; state.b=b; state.targetRound = (state.level==='hard')?100:10;
+    $('#hintText').textContent = 'ابحث عن تناغم الأعداد (تكمل إلى 100 أو 1000 بعد التقريب).';
+  }else{
+    state.targetRound = (state.mode==='round10')?10:100;
+    let a = rand(min, max), b = rand(min, max);
+    state.a=a; state.b=b;
+    $('#hintText').textContent = state.mode==='round10'
+      ? 'قرّب كل عدد إلى أقرب عشرة ثم اجمع.'
+      : 'قرّب كل عدد إلى أقرب مئة ثم اجمع.';
+  }
+  $('#questionBox').textContent = formatPair(state.a, state.b);
+  // ضبط الحقول الافتراضية
+  $('#roundA').value = nearestBase(state.a, state.targetRound);
+  $('#roundB').value = nearestBase(state.b, state.targetRound);
+  $('#sumGuess').value = '';
+  hideFeedback();
+  genHarmonicChoices();
+  genMCQOptions();
+}
+
+function clampToRange(n,min,max){ return Math.min(max, Math.max(min,n)); }
+
+/* تغذية راجعة */
+function showFeedback({ok, title, detail, tip, delta}){
+  const box = $('#fbBox');
+  $('#feedback').classList.remove('hidden');
+  box.className = 'rounded-2xl p-4';
+  if(ok){
+    box.classList.add('bg-emerald-50','border','border-emerald-200','text-emerald-800');
+    box.innerHTML = `
+      <div class="flex items-start gap-3">
+        <div>✅</div>
+        <div>
+          <div class="font-bold">${title}</div>
+          <div class="mt-1 text-sm">${detail}</div>
+          ${tip? `<div class="mt-1 text-xs text-emerald-700/80">${tip}</div>`:''}
+        </div>
+      </div>`;
+  }else{
+    box.classList.add('bg-rose-50','border','border-rose-200','text-rose-800');
+    box.innerHTML = `
+      <div class="flex items-start gap-3">
+        <div>❌</div>
+        <div>
+          <div class="font-bold">${title}</div>
+          <div class="mt-1 text-sm">${detail}</div>
+          ${tip? `<div class="mt-1 text-xs text-rose-700/80">${tip}</div>`:''}
+        </div>
+      </div>`;
+  }
+  // نجوم واحتفال
+  updateStars(ok ? (delta ?? 1) : 0);
+}
+
+/* التحقق */
+function checkAnswer(){
+  const base = state.targetRound;
+  const rA = clampInputToStep($('#roundA').value, base);
+  const rB = clampInputToStep($('#roundB').value, base);
+  const guess = parseInt($('#sumGuess').value||'NaN',10);
+
+  // الحل النموذجي
+  const modelA = nearestBase(state.a, base);
+  const modelB = nearestBase(state.b, base);
+  const modelSum = modelA + modelB;
+
+  if(isNaN(guess)){
+    showFeedback({
+      ok:false,
+      title:'اختاري إجابة أولًا',
+      detail:'اضغطي على أحد الخيارات الأربع في الأسفل.',
+      tip:'أكملي التقريب أولًا ثم اختاري المجموع التقديري.'
+    });
+    return;
+  }
+
+  // التقييم:
+  const correctRounding = (rA===modelA && rB===modelB);
+  const perfect = correctRounding && (guess===modelSum);
+  const closeEnough = Math.abs(guess - modelSum) <= base;
+
+  if(perfect){
+    showFeedback({
+      ok:true,
+      title:'إجابة ممتازة! 🌟',
+      detail:`قمتِ بتقريب ${state.a.toLocaleString('ar-EG')} → ${modelA.toLocaleString('ar-EG')} و ${state.b.toLocaleString('ar-EG')} → ${modelB.toLocaleString('ar-EG')}، والمجموع التقديري = ${modelSum.toLocaleString('ar-EG')}.`,
+      tip:'هذا هو التقدير الأمثل بناءً على قاعدة 5 أو أكثر نقرّب للأعلى.',
+      delta:1
+    });
+  }else if(correctRounding && closeEnough){
+    showFeedback({
+      ok:true,
+      title:'رائع! تقدير قريب جدًا ✅',
+      detail:`تقريبك صحيح والاختيار الذي اخترته قريب من ${modelSum.toLocaleString('ar-EG')}.`,
+      tip:'كلما كان الفرق أصغر كان تقديرك أدق.',
+      delta:1
+    });
+  }else{
+    // شرح تصحيحي
+    let reason = [];
+    if(rA!==modelA) reason.push(`العدد الأول ينبغي تقريبُه إلى ${modelA.toLocaleString('ar-EG')}.`);
+    if(rB!==modelB) reason.push(`العدد الثاني ينبغي تقريبُه إلى ${modelB.toLocaleString('ar-EG')}.`);
+    if(guess!==modelSum) reason.push(`المجموع التقديري المناسب هو ${modelSum.toLocaleString('ar-EG')}.`);
+    showFeedback({
+      ok:false,
+      title:'فكرة جميلة، لكن تحتاج تعديل بسيط',
+      detail:reason.join(' '),
+      tip:`قاعدة التقريب: إذا كان الرقم في الخانة التالية ${base===10?'الآحاد':'العشرات'} 5 أو أكثر نزيد، وإلا نبقي كما هو.`
+    });
+    // إعادة تمييز الخيارات
+    highlightMCQ(guess, modelSum);
+  }
+}
+
+/* خيارات متعددة للمجموع */
+function genMCQOptions(){
+  const base = state.targetRound;
+  const modelA = nearestBase(state.a, base);
+  const modelB = nearestBase(state.b, base);
+  const modelSum = modelA + modelB;
+
+  let opts = [modelSum, modelSum + base, modelSum - base, modelSum + 2*base];
+  // تنظيف القيم السالبة/المكررة
+  opts = Array.from(new Set(opts.filter(v => v > 0)));
+  while(opts.length < 4){
+    opts.push(modelSum + (rand(1,3) * base) * (Math.random() < .5 ? -1 : 1));
+    opts = Array.from(new Set(opts.filter(v => v > 0)));
+  }
+  // خلط
+  opts.sort(()=>Math.random()-0.5);
+
+  const box = $('#mcq');
+  box.innerHTML = '';
+  opts.forEach(v => {
+    const btn = document.createElement('button');
+    btn.className = 'choice btn-joy w-full text-center px-4 py-3 rounded-xl hover:bg-slate-50';
+    btn.setAttribute('type','button');
+    btn.textContent = new Intl.NumberFormat('ar-EG').format(v);
+    btn.dataset.val = String(v);
+    btn.addEventListener('click', () => {
+      // تمييز الاختيار
+      $$('#mcq .choice').forEach(c => c.setAttribute('aria-selected','false'));
+      btn.setAttribute('aria-selected','true');
+      // تمرير القيمة وإجراء التحقق
+      $('#sumGuess').value = btn.dataset.val;
+      checkAnswer();
+    });
+    box.appendChild(btn);
+  });
+}
+
+function highlightMCQ(guess, correct){
+  $$('#mcq .choice').forEach(c => {
+    const val = parseInt(c.dataset.val, 10);
+    c.style.outline = '';
+    c.setAttribute('aria-selected', String(val === guess));
+    if(val === correct){
+      c.style.outline = '3px solid #22c55e';
+      c.style.outlineOffset = '2px';
+    }else if(val === guess){
+      c.style.outline = '3px solid #ef4444';
+      c.style.outlineOffset = '2px';
+    }
+  });
+}
+
+/* تناغم اختيارات إضافية */
+function genHarmonicChoices(){
+  const box = $('#harmonicChoices');
+  box.innerHTML = '';
+  const levelHard = (state.level==='hard');
+  const target = levelHard?1000:100;
+
+  // توليد 4 خيارات: واحد منها الأكثر تناغمًا
+  const pairs = [];
+  // الخيار الصحيح
+  const good = genPairNearHarmony(target);
+  pairs.push(good);
+  // 3 مشتتات
+  for(let i=0;i<3;i++){
+    const a = rand(10, target-10);
+    const b = rand(10, target-10);
+    pairs.push([a,b]);
+  }
+  // خلط
+  pairs.sort(()=>Math.random()-0.5);
+
+  pairs.forEach(([a,b])=>{
+    const score = Math.abs((nearestBase(a, state.targetRound)) + (nearestBase(b, state.targetRound)) - target);
+    const btn = document.createElement('button');
+    btn.className = 'btn-joy w-full text-center px-4 py-3 rounded-xl bg-white border border-slate-200 hover:bg-slate-50';
+    btn.textContent = `${nf.format(a)} + ${nf.format(b)}`;
+    btn.dataset.score = score;
+    btn.addEventListener('click', ()=>{
+      const best = Math.min(...Array.from(box.children).map(c=>+c.dataset.score));
+      if(score===best){
+        showFeedback({
+          ok:true,
+          title:'اختيار متناغم جدًا 🎵',
+          detail:`بعد التقريب يصبح المجموع قريبًا من ${nf.format(target)}. أحسنت!`,
+          tip:'التناغم يعني أعداد تكمل لبعضها (مثل 35 و65 → 100).',
+          delta:1
+        });
+      }else{
+        showFeedback({
+          ok:false,
+          title:'قريب، لكن ليس الأكثر تناغمًا',
+          detail:`ابحث عن زوج يقترب مجموعُه بعد التقريب من ${nf.format(target)}.`,
+          tip:'فكّر: هل يكمّل أحد العددين العدد الآخر للوصول إلى مضاعف 10 أو 100؟'
+        });
+      }
+    });
+    box.appendChild(btn);
+  });
+}
+
+/* تقدم ونجوم (مع حفظ أفضل سلسلة) */
+function updateStars(gain){
+  if(gain){
+    state.stars = Math.min(5, state.stars + gain);
+    state.streak++;
+    state.best = Math.max(state.best, state.streak);
+  }
+  const stars = $('#stars');
+  stars.innerHTML = '';
+  for(let i=0;i<5;i++){
+    const s = document.createElement('span');
+    s.className = 'star';
+    s.style.opacity = i<state.stars ? '1' : '.2';
+    stars.appendChild(s);
+  }
+  updateProgressView();
+  if(state.stars>=5) openWin();
+}
+
+function updateProgressView(){
+  $('#streak').textContent = state.streak;
+  $('#best').textContent = state.best;
+  // حفظ أفضل سلسلة في التخزين المحلي
+  localStorage.setItem('roundingGame_best', String(state.best));
+}
+
+function openWin(){
+  $('#winModal').classList.remove('hidden');
+  $('#winModal').classList.add('flex');
+}
+
+function closeWin(){
+  $('#winModal').classList.add('hidden');
+  $('#winModal').classList.remove('flex');
+}
+
+/* عناصر التحكم في الحقول (+/−) */
+function stepInput(id, dir){
+  const base = state.targetRound;
+  const el = $(id);
+  let val = parseInt(el.value||0,10);
+  if(isNaN(val)) val = 0;
+  val += dir*base;
+  el.value = val;
+}
+
+/* قراءة صوتية للسؤال */
+function speakQuestion(){
+  try{
+    const txt = $('#questionBox').textContent.replace(/[^0-9٠-٩\+\s]/g,'').trim();
+    if(!txt) return;
+    window.speechSynthesis.cancel();
+    const u = new SpeechSynthesisUtterance('احسبي بالتقريب: ' + txt.replace('+',' زائد '));
+    u.lang = 'ar-SA';
+    u.rate = 0.95;
+    window.speechSynthesis.speak(u);
+  }catch(e){ console.warn(e); }
+}
+
+/* أحداث الواجهة */
+$('#modeChips').addEventListener('click', (e)=>{
+  const btn = e.target.closest('button.mode');
+  if(!btn) return;
+  state.mode = btn.dataset.mode;
+  // تمييز مرئي
+  $$('.mode').forEach(b=>b.classList.remove('ring-2','ring-offset-2','ring-slate-800'));
+  btn.classList.add('ring-2','ring-offset-2','ring-slate-800');
+  newQuestion();
+});
+
+$('#level').addEventListener('change', (e)=>{
+  state.level = e.target.value;
+  newQuestion();
+});
+
+$('#newQ').addEventListener('click', ()=> newQuestion());
+
+$('#decA').addEventListener('click', ()=> stepInput('#roundA', -1));
+$('#incA').addEventListener('click', ()=> stepInput('#roundA', 1));
+$('#decB').addEventListener('click', ()=> stepInput('#roundB', -1));
+$('#incB').addEventListener('click', ()=> stepInput('#roundB', 1));
+
+$('#resetBtn').addEventListener('click', ()=>{
+  state.stars=0; state.streak=0; updateStars(0);
+  hideFeedback();
+});
+
+$('#celebrateBtn').addEventListener('click', ()=>{
+  confettiBurst();
+});
+
+$('#helpBtn').addEventListener('click', ()=>{
+  // إظهار تلميح فوق الزر لثانيتين
+  const tip = $('#helpTip');
+  tip.style.opacity = '1'; tip.style.transform='translateY(0)';
+  setTimeout(()=>{ tip.style.opacity='0'; tip.style.transform='translateY(6px)'; }, 2000);
+});
+
+$('#ttsBtn').addEventListener('click', speakQuestion);
+
+$('#closeWin').addEventListener('click', closeWin);
+$('#newRound').addEventListener('click', ()=>{
+  state.stars=0; state.streak=0; updateStars(0);
+  closeWin(); newQuestion();
+});
+
+/* مؤثر احتفالي بسيط (قصاصات) بدون مكتبات */
+function confettiBurst(){
+  const N=24;
+  const container = document.body;
+  for(let i=0;i<N;i++){
+    const p = document.createElement('div');
+    p.style.position='fixed';
+    p.style.top='-10px';
+    p.style.left= (Math.random()*100)+'%';
+    p.style.width='10px'; p.style.height='14px';
+    p.style.background = ['#ff7aa2','#6dd3ff','#ffc857','#23d18b','#6c8cff'][i%5];
+    p.style.transform='rotate('+ (Math.random()*360)+'deg)';
+    p.style.borderRadius='3px';
+    p.style.zIndex=50;
+    p.style.opacity='0.9';
+    const dur = 1200+Math.random()*1000;
+    p.animate([
+      { transform:`translateY(0) rotate(${Math.random()*90}deg)`, opacity:0.9 },
+      { transform:`translate(${(Math.random()*80-40)}px, ${window.innerHeight+40}px) rotate(${Math.random()*360}deg)`, opacity:0.9 }
+    ], { duration: dur, easing:'cubic-bezier(.2,.8,.2,1)'});
+    container.appendChild(p);
+    setTimeout(()=>p.remove(), dur);
+  }
+}
+
+function hideFeedback(){
+  $('#feedback').classList.add('hidden');
+}
+
+/* تهيئة */
+window.addEventListener('load', ()=>{
+  // استرجاع أفضل سلسلة من التخزين المحلي
+  const bestSaved = parseInt(localStorage.getItem('roundingGame_best')||'0',10);
+  if(!Number.isNaN(bestSaved)) state.best = bestSaved;
+  $('#best').textContent = state.best;
+
+  // اختيار افتراضي
+  $$('.mode')[0].classList.add('ring-2','ring-offset-2','ring-slate-800');
+  newQuestion();
+  updateStars(0);
+});
+</script>
+</body>
+</html>
